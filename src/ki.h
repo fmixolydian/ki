@@ -118,7 +118,6 @@ typedef enum {
 // 	if (A) then (B) else (C)
 
 struct ParsedStmt {
-	int type; // = 0
 	struct ParsedStmt *next;
 	void *child;
 		// points to any struct derivative of ParsedWord
@@ -127,20 +126,8 @@ struct ParsedStmt {
 				// ParsedWordType type;
 };
 
-struct ParsedLexedStmt {
-	int type; // = 1
-	struct ParsedStmt *next;
-	struct LexedBlock B;
-};
-
 struct ParsedBlock {
 	struct ParsedStmt *child;
-};
-
-struct ParsedBlockStmt {
-	int type; // = 1
-	struct ParsedStmt *next;
-	struct ParsedBlock B;
 };
 
 struct ParsedWord {
@@ -193,8 +180,6 @@ struct Ki {
 
 struct ParsedStmt *ki_parse_block_htail(struct ParsedBlock *B);
 void ki_parse_block_pushstmt(struct ParsedBlock *B, struct ParsedStmt S);
-void ki_parse_block_pushlexstmt(struct ParsedBlock *B, struct ParsedLexedStmt LS);
-void ki_parse_block_pushblkstmt(struct ParsedBlock *B, struct ParsedBlockStmt BS);
 void ki_parse_error(char *s);
 struct ParsedWord *ki_parse_stmt_htail(struct ParsedStmt *S);
 void ki_parse_stmt_pushword(struct ParsedStmt *S, struct ParsedWord W);
@@ -213,6 +198,8 @@ void ki_strrev(char *dest, char *src, size_t n);
 void ki_lex_error(char *prg, char *P, char *s);
 struct LexedBlock ki_lex_analyze(char *program);
 void ki_lex_dump(struct LexedBlock prg, int indent);
+struct Ki ki_compile(struct ParsedBlock B);
+void ki_prg_dump(struct Ki K);
 
 
 extern const char *ki_keyword_names[];

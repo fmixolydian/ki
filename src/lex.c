@@ -152,9 +152,9 @@ struct LexedBlock ki_lex_analyze(char *program) {
 					if (N > 4) ki_lex_error(program, P, "multibyte char constant too long");
 					uint32_t n = 0;
 					uint32_t f = 0;
-					strncpy(&n, buffer, 4);
+					strncpy((char*)&n, buffer, 4);
 					
-					if (IS_LITTLE_ENDIAN) ki_strrev(&f, &n, N);
+					if (IS_LITTLE_ENDIAN) ki_strrev((char*)&f, (char*)&n, N);
 					else                  f = n;
 					
 					printf("\tLITERAL_CHAR %x, %x\n", f, n);
@@ -330,7 +330,7 @@ void ki_lex_dump(struct LexedBlock prg, int indent) {
 				break;
 				
 			case NODE_LITERAL_FLOAT:
-				printf("%f", P->val.i);
+				printf("%f", P->val.f);
 				break;
 			
 			case NODE_KEYWORD:

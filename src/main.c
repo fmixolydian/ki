@@ -4,7 +4,7 @@
 #include "ki.h"
 
 int main() {
-	char *program = "read int ? (\"true\") ! (\"false\") echo";
+	char *program = "read dup echo; while (dup) do (dup; echo);";
 	
 	struct LexedBlock L = ki_lex_analyze(program);
 	printf("L:\n");

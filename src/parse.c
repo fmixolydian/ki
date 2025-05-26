@@ -18,37 +18,6 @@ void ki_parse_block_pushstmt(struct ParsedBlock *B, struct ParsedStmt S) {
 	if (!P) {perror("malloc"); abort();}
 	*P = S;
 	P->next = NULL;
-	P->type = 0;
-	
-	if (B->child) {
-		ki_parse_block_htail(B)->next = P;
-	} else {
-		B->child = P;
-	}
-}
-
-// push a lexed statement to the end of a block (2d linked list)
-void ki_parse_block_pushlexstmt(struct ParsedBlock *B, struct ParsedLexedStmt LS) {
-	struct ParsedLexedStmt *P = malloc(sizeof LS);
-	if (!P) {perror("malloc"); abort();}
-	*P = LS;
-	P->next = NULL;
-	P->type = 1;
-	
-	if (B->child) {
-		ki_parse_block_htail(B)->next = P;
-	} else {
-		B->child = P;
-	}
-}
-
-// push a lexed statement to the end of a block (2d linked list)
-void ki_parse_block_pushblkstmt(struct ParsedBlock *B, struct ParsedBlockStmt BS) {
-	struct ParsedBlockStmt *P = malloc(sizeof BS);
-	if (!P) {perror("malloc"); abort();}
-	*P = BS;
-	P->next = NULL;
-	P->type = 2;
 	
 	if (B->child) {
 		ki_parse_block_htail(B)->next = P;
@@ -181,7 +150,6 @@ struct ParsedBlock ki_parse_analyze_pass1(struct LexedBlock L, int nest_level) {
 	struct LexedNode *T;
 	struct ParsedStmt       S = {0};
 	struct ParsedBlock      B = {0};
-	struct ParsedLexedStmt LS = {0};
 	
 	struct LexedBlock      SubL = {0};
 	struct ParsedBlock     SubB = {0};
@@ -491,21 +459,8 @@ void ki_parse_dump(struct ParsedBlock B, int indent) {
 	
 	for (int i=0; S; i++) {
 		INDENT(indent);
-		switch (S->type) {
-			case 0:
-				printf("%d) STMT:\n", i + 1);
-				ki_parse_dump_stmt(*S, indent + 1);
-				break;
-			
-			case 1:
-				printf("LEXSTMT:\n");
-				ki_lex_dump(((struct ParsedLexedStmt*)S)->B, indent + 1);
-				break;
-			
-			default:
-				printf("??????\n");
-				break;
-		}
+		printf("%d) STMT:\n", i + 1);
+		ki_parse_dump_stmt(*S, indent + 1);
 		
 		S = S->next;
 	}
