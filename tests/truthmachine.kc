@@ -1,0 +1,12 @@
+__start__:
+	CALLF "read"
+	DUP
+	CALLF "echo"
+	
+.L1:
+	; WHILE
+	DUP
+	CALLF "echo"
+	DUP
+	BRANZ .L1
+	RET

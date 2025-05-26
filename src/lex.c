@@ -1,5 +1,50 @@
 #include "ki.h"
 
+const char *ki_keyword_names[] = {
+	[KW_IF] = "if",
+	[KW_THEN] = "then",
+	[KW_ELSE] = "else",
+	
+	[KW_WHILE] = "while",
+	[KW_DO] = "do",
+	
+	[KW_FOR] = "for",
+	[KW_TO] = "to",
+	[KW_STEP] = "step",
+	[KW_FOREACH] = "foreach",
+	[KW_IN] = "in",
+	
+	[KW_SWITCH] = "switch",
+	[KW_CASE] = "case",
+	[KW_DEFAULT] = "default",
+	
+	[KW_ADD] = "add",
+	[KW_SUB] = "sub",
+	[KW_MUL] = "mul",
+	[KW_DIV] = "div",
+	[KW_MOD] = "mod",
+	[KW_NEG] = "neg",
+	[KW_ABS] = "abs",
+	[KW_MAX] = "max",
+	[KW_MIN] = "min",
+	[KW_INC] = "inc",
+	[KW_DEC] = "dec",
+	
+	[KW_DUP] = "dup",
+	[KW_DROP] = "drop",
+	[KW_SWAP] = "swap",
+	[KW_ROLL] = "roll",
+	
+	[KW_C_OR] = "or",
+	[KW_C_AND] = "and",
+	[KW_C_XOR] = "xor",
+	[KW_C_NOT] = "not",
+	[KW_C_EQ] = "eq",
+	[KW_C_NE] = "ne",
+	[KW_C_LT] = "lt",
+	[KW_C_GT] = "gt" 
+};
+
 struct LexedBlock ki_lex_newblock() {
 	struct LexedBlock prg = {0};
 	
@@ -76,6 +121,9 @@ struct LexedBlock ki_lex_analyze(char *program) {
 	char *P = program;
 	char buffer[256];
 	
+	int NL = 0;
+	bool t;
+	
 	while (*P) {
 		int N;
 		switch (mode) {
@@ -107,8 +155,9 @@ struct LexedBlock ki_lex_analyze(char *program) {
 					strncpy(&n, buffer, 4);
 					
 					if (IS_LITTLE_ENDIAN) ki_strrev(&f, &n, N);
+					else                  f = n;
 					
-					printf("\tLITERAL_CHAR %x\n", f);
+					printf("\tLITERAL_CHAR %x, %x\n", f, n);
 					ki_lex_push(&prg, (struct LexedNode) {
 						.type = NODE_LITERAL_INTEGER,
 						.val.i = f
@@ -144,23 +193,49 @@ struct LexedBlock ki_lex_analyze(char *program) {
 						});
 						
 					}
-				} else if (buffer[0] == '$') {
-					if (N < 2) ki_lex_error(program, P, "empty variable name");
-					
-					printf("\tVARPUSH '%s'\n", buffer + 1);
-					ki_lex_push(&prg, (struct LexedNode) {
-						.type = NODE_VARPUSH,
-						.val.s = strdup(buffer + 1)
-					});
-					
 				} else {
-					
-					printf("\tIDENTIFIER '%s'\n", buffer);
-					ki_lex_push(&prg, (struct LexedNode) {
-						.type = NODE_IDENTIFIER,
-						.val.s = strdup(buffer)
-					});
-					
+					switch (buffer[0]) {
+						case '$':
+							if (N < 2) ki_lex_error(program, P, "empty variable name");
+							
+							printf("\tVARPUSH '%s'\n", buffer + 1);
+							ki_lex_push(&prg, (struct LexedNode) {
+								.type = NODE_VARPUSH,
+								.val.s = strdup(buffer + 1)
+							});
+							break;
+							
+						case '@':
+							if (N < 2) ki_lex_error(program, P, "empty variable name");
+							
+							printf("\tVARPOP '%s'\n", buffer + 1);
+							ki_lex_push(&prg, (struct LexedNode) {
+								.type = NODE_VARPOP,
+								.val.s = strdup(buffer + 1)
+							});
+							break;
+							
+						default:
+							for (int i=0; i<NO_KW; i++) {
+								if (!strcmp(buffer, ki_keyword_names[i])) {
+									printf("\tKW %s (%d)\n", ki_keyword_names[i], i);
+									ki_lex_push(&prg, (struct LexedNode) {
+										.type = NODE_KEYWORD,
+										.val.i = i
+									});
+									goto sel_keyword;
+								}
+							}
+							
+							printf("\tCALL '%s'\n", buffer);
+							ki_lex_push(&prg, (struct LexedNode) {
+								.type = NODE_CALL,
+								.val.s = strdup(buffer)
+							});
+							
+						sel_keyword:
+							break;
+					}
 				}
 				
 			}
@@ -181,10 +256,12 @@ struct LexedBlock ki_lex_analyze(char *program) {
 				ki_lex_push(&prg, (struct LexedNode) { .type = NODE_STATEMENT_SEP });
 				break;
 			case '(':
+				NL++;
 				printf("\tBRACKETS_START\n");
 				ki_lex_push(&prg, (struct LexedNode) { .type = NODE_BLOCK_START });
 				break;
 			case ')':
+				NL--;
 				printf("\tBRACKETS_END\n");
 				ki_lex_push(&prg, (struct LexedNode) { .type = NODE_BLOCK_END });
 				break;
@@ -206,14 +283,17 @@ struct LexedBlock ki_lex_analyze(char *program) {
 	}
 	
 	end_parse:
-	printf("finished.\n");
+	
+	if (NL != 0) ki_lex_error(program, P, "unbalanced brackets");
 	
 	return prg;
 }
 
 const char *ki_lex_nodenames[] = {
 	[NODE_NULL]             = "NULL",
-	[NODE_IDENTIFIER]       = "ID",
+	[NODE_KEYWORD]          = "KEYWORD",
+	[NODE_VARPOP]           = "POP VAR",
+	[NODE_CALL]             = "CALL",
 	[NODE_VARPUSH]          = "PUSH VAR",
 	[NODE_LITERAL_INTEGER]  = "PUSH",
 	[NODE_LITERAL_FLOAT]    = "PUSH",
@@ -223,11 +303,12 @@ const char *ki_lex_nodenames[] = {
 	[NODE_STATEMENT_SEP]    = "STMT SEP",
 };
 
-void ki_lex_dump(struct LexedBlock prg) {
+void ki_lex_dump(struct LexedBlock prg, int indent) {
 	struct LexedNode *P = prg.tokens;
 	
 	for (int i=0; P; i++) {
-		printf("\t%3d NODE %-12s ", i, ki_lex_nodenames[P->type]);
+		INDENT(indent);
+		printf("%3d NODE %-12s ", i, ki_lex_nodenames[P->type]);
 		switch (P->type) {
 			case NODE_NULL:
 			case NODE_BLOCK_START:
@@ -235,8 +316,8 @@ void ki_lex_dump(struct LexedBlock prg) {
 			case NODE_STATEMENT_SEP:
 				break;
 			
-			case NODE_IDENTIFIER:
-			case NODE_VARPUSH:
+			case NODE_VARPOP:
+			case NODE_CALL:
 				printf("%s", P->val.s);
 				break;
 				
@@ -250,6 +331,10 @@ void ki_lex_dump(struct LexedBlock prg) {
 				
 			case NODE_LITERAL_FLOAT:
 				printf("%f", P->val.i);
+				break;
+			
+			case NODE_KEYWORD:
+				printf("%s (%d)", ki_keyword_names[P->val.i], P->val.i);
 				break;
 			
 			default:
