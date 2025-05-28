@@ -20,5 +20,5 @@ int main() {
 	
 	struct Ki K = ki_compile(P2);
 	printf("K:\n");
-	ki_prg_dump(K);
+	ki_prg_dump(K, 1);
 }

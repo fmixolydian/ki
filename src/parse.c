@@ -14,9 +14,7 @@ struct ParsedStmt *ki_parse_block_htail(struct ParsedBlock *B) {
 
 // push a lexed statement to the end of a block (2d linked list)
 void ki_parse_block_pushstmt(struct ParsedBlock *B, struct ParsedStmt S) {
-	struct ParsedStmt *P = malloc(sizeof S);
-	if (!P) {perror("malloc"); abort();}
-	*P = S;
+	struct ParsedStmt *P = ki_memdup(&S, sizeof S);
 	P->next = NULL;
 	
 	if (B->child) {
@@ -45,9 +43,7 @@ struct ParsedWord *ki_parse_stmt_htail(struct ParsedStmt *S) {
 }
 
 void ki_parse_stmt_pushword(struct ParsedStmt *S, struct ParsedWord W) {
-	struct ParsedWord *P = malloc(sizeof W);
-	if (!P) {perror("malloc"); abort();}
-	*P = W;
+	struct ParsedWord *P = ki_memdup(&W, sizeof W);
 	P->next = NULL;
 	
 	if (S->child) {
@@ -197,8 +193,7 @@ struct ParsedBlock ki_parse_analyze_pass1(struct LexedBlock L, int nest_level) {
 				memset(&W, 0, sizeof W);
 				W.type = WORD_BLOCK;
 				W.value.Bc = 1;
-				W.value.B  = malloc(sizeof(struct ParsedBlock));
-				*W.value.B = SubB;
+				W.value.B  = ki_memdup(&SubB, sizeof SubB);
 				ki_parse_stmt_pushword(&S, W);
 				break;
 			
@@ -368,7 +363,7 @@ struct ParsedBlock ki_parse_analyze_pass2(struct ParsedBlock SrcB) {
 							printf("C:\n");
 							ki_parse_dump(Bc, 1);
 							
-							Blks = malloc(sizeof(struct ParsedBlock) * 3);
+							Blks = calloc(3, sizeof(struct ParsedBlock));
 							Blks[0] = Ba;
 							Blks[1] = Bb;
 							Blks[2] = Bc;
@@ -382,7 +377,7 @@ struct ParsedBlock ki_parse_analyze_pass2(struct ParsedBlock SrcB) {
 							break;
 						
 						case KW_WHILE:
-							Blks = malloc(sizeof(struct ParsedBlock) * 2);
+							Blks = calloc(2, sizeof(struct ParsedBlock));
 							
 							// cond
 							W = ki_parse_word_next_guarded(W, WORD_BLOCK, 0);
@@ -417,8 +412,8 @@ struct ParsedBlock ki_parse_analyze_pass2(struct ParsedBlock SrcB) {
 							Str = W->value.s;
 							W = ki_parse_word_next_guarded(W, WORD_BLOCK, 0);
 							
-							Blks = malloc(sizeof(struct ParsedBlock));
-							*Blks = *W->value.B;
+							Blks = memdup(&W->value.B, sizeof(struct ParsedBlock));
+							
 							ki_parse_stmt_pushword(&DestS, (struct ParsedWord) {
 								.type = WORD_CALL,
 								.value.s  = Str,

@@ -46,9 +46,9 @@ const char *ki_keyword_names[] = {
 };
 
 struct LexedBlock ki_lex_newblock() {
-	struct LexedBlock prg = {0};
+	struct LexedBlock L = {0};
 	
-	return prg;
+	return L;
 }
 
 struct LexedBlock ki_lex_cutblock(struct LexedBlock src, int start, int end) {
@@ -57,9 +57,7 @@ struct LexedBlock ki_lex_cutblock(struct LexedBlock src, int start, int end) {
 	
 	for (int i=0; P; i++) {
 		if (i >= start && i <= end) {
-			struct LexedNode N = *P;
-			N.next = NULL;
-			ki_lex_push(&dest, N);
+			ki_lex_push(&dest, *P);
 		}
 		
 		P = P->next;
@@ -68,10 +66,9 @@ struct LexedBlock ki_lex_cutblock(struct LexedBlock src, int start, int end) {
 	return dest;
 }
 
-
-struct LexedNode *ki_lex_tail(struct LexedBlock *prg) {
+struct LexedNode *ki_lex_tail(struct LexedBlock *L) {
 	// grab linkedlist's tail
-	struct LexedNode *P = prg->tokens;
+	struct LexedNode *P = L->tokens;
 	while (P->next) {
 		P = P->next;
 	}
@@ -79,43 +76,24 @@ struct LexedNode *ki_lex_tail(struct LexedBlock *prg) {
 	return P;
 }
 
-void ki_lex_push(struct LexedBlock *prg, struct LexedNode node) {
-	struct LexedNode *P = malloc(sizeof node);
-	if (!P) {perror("malloc"); abort();}
-	*P = node;
+void ki_lex_push(struct LexedBlock *L, struct LexedNode node) {
+	struct LexedNode *P = ki_memdup(&node, sizeof node);
 	P->next = NULL;
 	
-	if (prg->tokens) {
-		ki_lex_tail(prg)->next = P;
+	if (L->tokens) {
+		ki_lex_tail(L)->next = P;
 	} else {
-		prg->tokens = P;
+		L->tokens = P;
 	}
 }
 
-int ki_strtok(char *dest, size_t len, char *src, char *delim) {
-	int i;
-	for (i=0; src[i] && i < (len - 1); i++) {
-		if (strchr(delim, src[i])) break;
-		dest[i] = src[i];
-	}
-	dest[i] = 0;
-	
-	return i;
-}
-
-void ki_strrev(char *dest, char *src, size_t n) {
-	for (int i=0; i<n; i++) {
-		dest[i] = src[(n - 1) - i];
-	}
-}
-
-void ki_lex_error(char *prg, char *P, char *s) {
-	fprintf(stderr, "\033[31mLEXER ERROR at %ld: %s\033[0m\n", P - prg, s);
+void ki_lex_error(char *L, char *P, char *s) {
+	fprintf(stderr, "\033[31mLEXER ERROR at %ld: %s\033[0m\n", P - L, s);
 	exit(1);
 }
 
 struct LexedBlock ki_lex_analyze(char *program) {
-	struct LexedBlock prg = ki_lex_newblock();
+	struct LexedBlock L = ki_lex_newblock();
 	
 	enum {MODE_LITERAL, MODE_STRING, MODE_COMMENT} mode = MODE_LITERAL;
 	char *P = program;
@@ -158,7 +136,7 @@ struct LexedBlock ki_lex_analyze(char *program) {
 					else                  f = n;
 					
 					printf("\tLITERAL_CHAR %x, %x\n", f, n);
-					ki_lex_push(&prg, (struct LexedNode) {
+					ki_lex_push(&L, (struct LexedNode) {
 						.type = NODE_LITERAL_INTEGER,
 						.val.i = f
 					});
@@ -166,7 +144,7 @@ struct LexedBlock ki_lex_analyze(char *program) {
 				} else {
 					
 					printf("\tLITERAL_STRING '%s'\n", buffer);
-					ki_lex_push(&prg, (struct LexedNode) {
+					ki_lex_push(&L, (struct LexedNode) {
 						.type = NODE_LITERAL_STRING,
 						.val.s = strdup(buffer)
 					});
@@ -179,7 +157,7 @@ struct LexedBlock ki_lex_analyze(char *program) {
 					if (strchr(buffer, '.')) {
 						
 						printf("\tLITERAL_FLOAT %f\n", atof(buffer));
-						ki_lex_push(&prg, (struct LexedNode) {
+						ki_lex_push(&L, (struct LexedNode) {
 							.type = NODE_LITERAL_FLOAT,
 							.val.f = atof(buffer)
 						});
@@ -187,7 +165,7 @@ struct LexedBlock ki_lex_analyze(char *program) {
 					} else {
 						
 						printf("\tLITERAL_INT %d\n", atoi(buffer));
-						ki_lex_push(&prg, (struct LexedNode) {
+						ki_lex_push(&L, (struct LexedNode) {
 							.type = NODE_LITERAL_INTEGER,
 							.val.i = atoi(buffer)
 						});
@@ -199,7 +177,7 @@ struct LexedBlock ki_lex_analyze(char *program) {
 							if (N < 2) ki_lex_error(program, P, "empty variable name");
 							
 							printf("\tVARPUSH '%s'\n", buffer + 1);
-							ki_lex_push(&prg, (struct LexedNode) {
+							ki_lex_push(&L, (struct LexedNode) {
 								.type = NODE_VARPUSH,
 								.val.s = strdup(buffer + 1)
 							});
@@ -209,7 +187,7 @@ struct LexedBlock ki_lex_analyze(char *program) {
 							if (N < 2) ki_lex_error(program, P, "empty variable name");
 							
 							printf("\tVARPOP '%s'\n", buffer + 1);
-							ki_lex_push(&prg, (struct LexedNode) {
+							ki_lex_push(&L, (struct LexedNode) {
 								.type = NODE_VARPOP,
 								.val.s = strdup(buffer + 1)
 							});
@@ -219,7 +197,7 @@ struct LexedBlock ki_lex_analyze(char *program) {
 							for (int i=0; i<NO_KW; i++) {
 								if (!strcmp(buffer, ki_keyword_names[i])) {
 									printf("\tKW %s (%d)\n", ki_keyword_names[i], i);
-									ki_lex_push(&prg, (struct LexedNode) {
+									ki_lex_push(&L, (struct LexedNode) {
 										.type = NODE_KEYWORD,
 										.val.i = i
 									});
@@ -228,7 +206,7 @@ struct LexedBlock ki_lex_analyze(char *program) {
 							}
 							
 							printf("\tCALL '%s'\n", buffer);
-							ki_lex_push(&prg, (struct LexedNode) {
+							ki_lex_push(&L, (struct LexedNode) {
 								.type = NODE_CALL,
 								.val.s = strdup(buffer)
 							});
@@ -253,17 +231,17 @@ struct LexedBlock ki_lex_analyze(char *program) {
 			case ',':
 			case ';':
 				printf("\tSTATEMENT_SEPARATOR\n");
-				ki_lex_push(&prg, (struct LexedNode) { .type = NODE_STATEMENT_SEP });
+				ki_lex_push(&L, (struct LexedNode) { .type = NODE_STATEMENT_SEP });
 				break;
 			case '(':
 				NL++;
 				printf("\tBRACKETS_START\n");
-				ki_lex_push(&prg, (struct LexedNode) { .type = NODE_BLOCK_START });
+				ki_lex_push(&L, (struct LexedNode) { .type = NODE_BLOCK_START });
 				break;
 			case ')':
 				NL--;
 				printf("\tBRACKETS_END\n");
-				ki_lex_push(&prg, (struct LexedNode) { .type = NODE_BLOCK_END });
+				ki_lex_push(&L, (struct LexedNode) { .type = NODE_BLOCK_END });
 				break;
 			case '\t':
 			case '\r':
@@ -286,7 +264,7 @@ struct LexedBlock ki_lex_analyze(char *program) {
 	
 	if (NL != 0) ki_lex_error(program, P, "unbalanced brackets");
 	
-	return prg;
+	return L;
 }
 
 const char *ki_lex_nodenames[] = {
@@ -303,8 +281,8 @@ const char *ki_lex_nodenames[] = {
 	[NODE_STATEMENT_SEP]    = "STMT SEP",
 };
 
-void ki_lex_dump(struct LexedBlock prg, int indent) {
-	struct LexedNode *P = prg.tokens;
+void ki_lex_dump(struct LexedBlock L, int indent) {
+	struct LexedNode *P = L.tokens;
 	
 	for (int i=0; P; i++) {
 		INDENT(indent);
