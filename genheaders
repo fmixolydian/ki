@@ -1,0 +1,18 @@
+#!/bin/python3
+
+import re
+import os
+
+REGEX = r"^(unsigned|signed)?(void|int|char|short|long|float|double|struct [A-Za-z_]+)\s*\*?([0-9A-Za-z_]+)\((.*)\)\s+{"
+
+print(REGEX)
+
+for filename in os.listdir("src"):
+	if filename.endswith('.c'):
+		with open(f"src/{filename}", "r") as fp:
+			data = fp.read()
+			print(f"\n// {filename}")
+			for match in re.finditer(REGEX, data, re.M):
+				_, fn_type, fn_name, fn_args = match.groups()
+				print(f"%-20s %s(%s);" %
+				      (fn_type, fn_name, fn_args))
