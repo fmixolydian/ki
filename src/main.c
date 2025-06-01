@@ -4,7 +4,7 @@
 #include "ki.h"
 
 int main() {
-	char *program = "read dup echo; while (dup) do (dup; echo);";
+	char *program = "one two if (three four) then (123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 1 dup) seven eight";
 	
 	struct LexedBlock L = ki_lex_analyze(program);
 	printf("L:\n");
@@ -18,7 +18,8 @@ int main() {
 	printf("P2:\n");
 	ki_parse_dump(P2, 1);
 	
-	struct Ki K = ki_compile(P2);
+	struct Ki K;
+	ki_compile(&K, P2);
 	printf("K:\n");
 	ki_prg_dump(K, 1);
 }

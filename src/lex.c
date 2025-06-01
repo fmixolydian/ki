@@ -18,22 +18,23 @@ const char *ki_keyword_names[] = {
 	[KW_CASE] = "case",
 	[KW_DEFAULT] = "default",
 	
-	[KW_ADD] = "add",
-	[KW_SUB] = "sub",
-	[KW_MUL] = "mul",
-	[KW_DIV] = "div",
+	[KW_ADD] = "+",
+	[KW_SUB] = "-",
+	[KW_MUL] = "*",
+	[KW_DIV] = "/",
 	[KW_MOD] = "mod",
 	[KW_NEG] = "neg",
 	[KW_ABS] = "abs",
 	[KW_MAX] = "max",
 	[KW_MIN] = "min",
-	[KW_INC] = "inc",
-	[KW_DEC] = "dec",
+	[KW_INC] = "++",
+	[KW_DEC] = "--",
 	
 	[KW_DUP] = "dup",
 	[KW_DROP] = "drop",
 	[KW_SWAP] = "swap",
-	[KW_ROLL] = "roll",
+	[KW_ROL] = "rol",
+	[KW_ROR] = "ror",
 	
 	[KW_C_OR] = "or",
 	[KW_C_AND] = "and",
@@ -167,7 +168,7 @@ struct LexedBlock ki_lex_analyze(char *program) {
 						printf("\tLITERAL_INT %d\n", atoi(buffer));
 						ki_lex_push(&L, (struct LexedNode) {
 							.type = NODE_LITERAL_INTEGER,
-							.val.i = atoi(buffer)
+							.val.i = strtol(buffer, NULL, 0)
 						});
 						
 					}
@@ -295,6 +296,7 @@ void ki_lex_dump(struct LexedBlock L, int indent) {
 				break;
 			
 			case NODE_VARPOP:
+			case NODE_VARPUSH:
 			case NODE_CALL:
 				printf("%s", P->val.s);
 				break;

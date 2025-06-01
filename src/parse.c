@@ -85,9 +85,7 @@ void ki_parse_dump_stmt(struct ParsedStmt S, int indent) {
 					printf(" %s", P->value.s);
 					if (P->value.Bc) {
 						printf(" ARGV:\n");
-						for (int i=0; i < P->value.Bc; i++) {
-							ki_parse_dump(P->value.B[i], indent + 1);
-						}
+						ki_parse_dump(*(P->value.B), indent + 1);
 					} else {
 						printf("\n");
 					}
@@ -412,7 +410,7 @@ struct ParsedBlock ki_parse_analyze_pass2(struct ParsedBlock SrcB) {
 							Str = W->value.s;
 							W = ki_parse_word_next_guarded(W, WORD_BLOCK, 0);
 							
-							Blks = memdup(&W->value.B, sizeof(struct ParsedBlock));
+							Blks = ki_memdup(&W->value.B, sizeof(struct ParsedBlock));
 							
 							ki_parse_stmt_pushword(&DestS, (struct ParsedWord) {
 								.type = WORD_CALL,

@@ -3,7 +3,7 @@
 import re
 import os
 
-REGEX = r"^(unsigned|signed)?(void|int|char|short|long|float|double|struct [A-Za-z_]+)\s*\*?([0-9A-Za-z_]+)\((.*)\)\s+{"
+REGEX = r"^(unsigned|signed)?(u?int8_t|u?int16_t|u?int32_t|void|int|char|short|long|float|double|struct [A-Za-z_]+)\s*(\*?[0-9A-Za-z_]+)\((.*)\)\s+{"
 
 print(REGEX)
 
